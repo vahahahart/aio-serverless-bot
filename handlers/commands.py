@@ -2,7 +2,7 @@ from aiogram.dispatcher.router import Router
 from aiogram.types import Message
 
 import ydb_driver
-from handlers.options import transport_kb_builder, time_zone_kb_builder
+from handlers.options import transport_kb_builder, values_kb_builder
 
 
 router = Router()
@@ -20,7 +20,7 @@ async def cmd_start(message: Message):
         await ydb_driver.add_user(user_id)
         await message.answer('Пользователь зарегестрирован')
     await message.answer(start_msg)
-    tr_builder, tz_builder = transport_kb_builder(), time_zone_kb_builder()
+    tr_builder, tz_builder = transport_kb_builder(), values_kb_builder('timezone')
     await message.answer(f'Укажите часовой пояс (UTC)', reply_markup=tz_builder.as_markup())
     await message.answer(f'Укажите желаемый вид транспорта', reply_markup=tr_builder.as_markup())
     await message.answer('Введите регион с клавиатуры')

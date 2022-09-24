@@ -13,13 +13,18 @@ from regionsdata import search_requests
 router = Router()
 
 
-def time_zone_kb_builder():
+def values_kb_builder(template):
     builder = InlineKeyboardBuilder()
-    for tz in range(0, 13):
+    templates = {
+        'time_zone': {'iterable': range(0, 13), 'cb_data': 'set_tz_{}'},
+        'num': {'iterable': [3, 5, 7], 'cb_data': 'set_n_{}'}
+    }
+    template_dict = templates[template]
+    for value in template_dict['iterable']:
         builder.add(
             InlineKeyboardButton(
-                text=f'+{tz}',
-                callback_data=f'set_tz_{tz}'
+                text='{}'.format(value),
+                callback_data=template_dict['cb_data'].format(value)
             )
         )
     builder.adjust(4)
@@ -105,7 +110,7 @@ async def opt_transport(callback: CallbackQuery):
 
 
 async def opt_timezone(callback: CallbackQuery):
-    builder = time_zone_kb_builder()
+    builder = values_kb_builder('time_zone')
     await callback.message.edit_text(f'Укажите часовой пояс (UTC)', reply_markup=builder.as_markup())
 
 
