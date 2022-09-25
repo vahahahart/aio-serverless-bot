@@ -17,7 +17,7 @@ def values_kb_builder(template):
     builder = InlineKeyboardBuilder()
     templates = {
         'time_zone': {'iterable': range(0, 13), 'cb_data': 'set_tz_{}'},
-        'num': {'iterable': [3, 5, 7], 'cb_data': 'set_n_{}'}
+        'num': {'iterable': [1, 3, 5, 7], 'cb_data': 'set_n_{}'}
     }
     template_dict = templates[template]
     for value in template_dict['iterable']:
@@ -76,7 +76,7 @@ async def cmd_option(message: Message):
 @router.callback_query(F.data.startswith('opt'))
 async def set_option(callback: CallbackQuery):
     action = callback.data.split('_')[1]
-    action_dict = {'r': opt_region, 'tr': opt_transport, 'tz': opt_timezone, 'out': out}
+    action_dict = {'r': opt_region, 'tr': opt_transport, 'tz': opt_timezone, 'n': opt_num, 'out': opt_out}
     await action_dict[action](callback)
 
 
@@ -114,15 +114,20 @@ async def opt_timezone(callback: CallbackQuery):
     await callback.message.edit_text(f'Укажите часовой пояс (UTC)', reply_markup=builder.as_markup())
 
 
+async def opt_num(callback: CallbackQuery):
+    builder = values_kb_builder('num')
+    await callback.message.edit_text(f'Укажите отображаемое количество рейсов', reply_markup=builder.as_markup())
+
+
 @router.callback_query(F.data.startswith('set'))
 async def options_callback_handler(callback: CallbackQuery):
     user_id, data, value = callback.from_user.id, callback.data.split('_')[1], callback.data.split('_')[2]
-
-    if data == 'tr':
-        await ydb_driver.update_data(user_id, 'transport_type', value)
-        await callback.message.edit_text('Транспорт успешно выбран')
-    else:
-        await ydb_driver.update_data(user_id, 'time_zone', value)
-        await callback.message.edit_text('Часовой пояс успешно установлен')
+    options_cb_handler_templates = {
+        'tr': 'transport_type',
+        'tz': 'time_zone',
+        'n': 'num'
+    }
+    await ydb_driver.update_data(user_id, options_cb_handler_templates[data], value)
+    await callback.message.edit_text('Настройки успешно внесены')
 
     await callback.answer()

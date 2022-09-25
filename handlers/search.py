@@ -76,11 +76,17 @@ info_text = '''Рейс <b>{}</b>
 @router.callback_query(StationsCallbackFactory.filter(F.prev_code))
 async def reg2_station(callback: types.CallbackQuery, callback_data: StationsCallbackFactory):
     user_id = callback.from_user.id
-    tz = await ydb_driver.get_data(user_id, 'time_zone')
+    data = await ydb_driver.get_data(user_id, 'time_zone', 'num')
     await ydb_driver.update_data(user_id, 'last_codes', f'{callback_data.prev_code}_{callback_data.code}')
 
     try:
-        time_list = req.codes_to_time(callback_data.prev_code, callback_data.code, tz[0], callback_data.dt)
+        time_list = req.codes_to_time(
+            code_from=callback_data.prev_code,
+            code_to=callback_data.code,
+            tz=data[0],
+            num=data[1],
+            dt=callback_data.dt
+        )
     except ValueError:
         await callback.message.edit_text('Неверный ввод времени/даты поиска!')
         await callback.answer()

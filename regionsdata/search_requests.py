@@ -43,7 +43,7 @@ def station_to_code(st_name, region_name, transport_type):
     return found_stations
 
 
-def codes_to_time(code_from, code_to, tz, dt=None):
+def codes_to_time(code_from, code_to, tz, num=None, dt=None):
     if not dt:
         search_datetime = datetime.utcnow() + timedelta(hours=int(tz))
         search_date = date.today()
@@ -63,7 +63,7 @@ def codes_to_time(code_from, code_to, tz, dt=None):
     req = requests.get('https://api.rasp.yandex.net/v3.0/search/', params=params)
     output_info = json.loads(req.text)
 
-    numb = 3
+    num = num if num else 3
     time_list = []
     n = 0
 
@@ -83,6 +83,6 @@ def codes_to_time(code_from, code_to, tz, dt=None):
                 'duration': int(segment['duration'] // 60)
             })
             n += 1
-        if numb <= n:
+        if num <= n:
             break
     return time_list
