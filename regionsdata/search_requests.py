@@ -63,7 +63,7 @@ def codes_to_time(code_from, code_to, tz, num=None, dt=None):
     req = requests.get('https://api.rasp.yandex.net/v3.0/search/', params=params)
     output_info = json.loads(req.text)
 
-    num = num if num else 3
+    num = int(num) if num else 3
     time_list = []
     n = 0
 
