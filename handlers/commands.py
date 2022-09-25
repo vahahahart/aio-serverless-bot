@@ -34,6 +34,6 @@ help_msg = '''Регион: <b>{}</b>
 
 @router.message(commands='help')
 async def cmd_help(message: Message):
-    cur_id = message.from_user.id
-    data = await ydb_driver.get_data(cur_id, 'region', 'transport_type', 'time_zone')
+    user_id = message.from_user.id
+    data = await ydb_driver.get_data(user_id, 'region', 'transport_type', 'time_zone')
     await message.answer(start_msg + help_msg.format(*data))
