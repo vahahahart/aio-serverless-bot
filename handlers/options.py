@@ -80,7 +80,7 @@ async def set_option(callback: CallbackQuery):
     await action_dict[action](callback)
 
 
-async def out(callback: CallbackQuery):
+async def opt_out(callback: CallbackQuery):
     await callback.message.edit_text('Действие отменено')
     await callback.answer()
 
@@ -115,7 +115,7 @@ async def opt_timezone(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith('set'))
-async def commands_callback_handler(callback: CallbackQuery):
+async def options_callback_handler(callback: CallbackQuery):
     user_id, data, value = callback.from_user.id, callback.data.split('_')[1], callback.data.split('_')[2]
 
     if data == 'tr':
