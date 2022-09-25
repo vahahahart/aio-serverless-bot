@@ -5,7 +5,7 @@ from aiogram.dispatcher.router import Router
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import available_transport, option_dict
+from config import available_transport, option_dict, values_kb_builder_templates, options_cb_handler_templates
 import ydb_driver
 from regionsdata import search_requests
 
@@ -15,11 +15,7 @@ router = Router()
 
 def values_kb_builder(template):
     builder = InlineKeyboardBuilder()
-    templates = {
-        'time_zone': {'iterable': range(0, 13), 'cb_data': 'set_tz_{}'},
-        'num': {'iterable': [1, 3, 5, 7], 'cb_data': 'set_n_{}'}
-    }
-    template_dict = templates[template]
+    template_dict = values_kb_builder_templates[template]
     for value in template_dict['iterable']:
         builder.add(
             InlineKeyboardButton(
@@ -122,11 +118,6 @@ async def opt_num(callback: CallbackQuery):
 @router.callback_query(F.data.startswith('set'))
 async def options_callback_handler(callback: CallbackQuery):
     user_id, data, value = callback.from_user.id, callback.data.split('_')[1], callback.data.split('_')[2]
-    options_cb_handler_templates = {
-        'tr': 'transport_type',
-        'tz': 'time_zone',
-        'n': 'num'
-    }
     await ydb_driver.update_data(user_id, options_cb_handler_templates[data], value)
     await callback.message.edit_text('Настройки успешно внесены')
 
