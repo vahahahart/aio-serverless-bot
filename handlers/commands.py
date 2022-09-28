@@ -1,7 +1,10 @@
 from aiogram.dispatcher.router import Router
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import ydb_driver
+from handlers.search import out_last
+from config import option_dict
 from handlers.options import transport_kb_builder, values_kb_builder
 
 
@@ -37,3 +40,27 @@ async def cmd_help(message: Message):
     user_id = message.from_user.id
     data = await ydb_driver.get_data(user_id, 'region', 'transport_type', 'time_zone')
     await message.answer(start_msg + help_msg.format(*data))
+
+
+@router.message(commands='options')
+async def cmd_option(message: Message):
+    builder = InlineKeyboardBuilder()
+    for option in option_dict:
+        builder.add(
+            InlineKeyboardButton(
+                text=option,
+                callback_data=option_dict[option]
+            )
+        )
+    builder.adjust(2)
+    await message.answer('Настройки поиска:', reply_markup=builder.as_markup())
+
+
+@router.message(commands='last')
+async def cmd_last(message: Message):
+    await out_last(message)
+
+
+@router.message(commands='reverse_last')
+async def cmd_reverse_last(message: Message):
+    await out_last(message, reverse=True)

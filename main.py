@@ -25,6 +25,8 @@ async def set_commands(bot: Bot):
     cmds = [
         BotCommand(command='/help', description='Отобразить выбранные параметры поиска и инструкции по командам'),
         BotCommand(command='/options', description='Параметры поиска'),
+        BotCommand(command='/last', description='Поиск по последнему маршруту'),
+        BotCommand(command='/reverse_last', description='Поиск обратного маршрута')
     ]
     await bot.set_my_commands(cmds)
 

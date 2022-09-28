@@ -5,7 +5,7 @@ from aiogram.dispatcher.router import Router
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import available_transport, option_dict, values_kb_builder_templates, options_cb_handler_templates
+from config import available_transport, values_kb_builder_templates, options_cb_handler_templates
 import ydb_driver
 from regionsdata import search_requests
 
@@ -53,20 +53,6 @@ async def check_state_middleware(
         return await states_dict[state[0]](event)
     else:
         return await handler(event, data)
-
-
-@router.message(commands='options')
-async def cmd_option(message: Message):
-    builder = InlineKeyboardBuilder()
-    for option in option_dict:
-        builder.add(
-            InlineKeyboardButton(
-                text=option,
-                callback_data=option_dict[option]
-            )
-        )
-    builder.adjust(2)
-    await message.answer('Настройки поиска:', reply_markup=builder.as_markup())
 
 
 @router.callback_query(F.data.startswith('opt'))
@@ -120,5 +106,4 @@ async def options_callback_handler(callback: CallbackQuery):
     user_id, data, value = callback.from_user.id, callback.data.split('_')[1], callback.data.split('_')[2]
     await ydb_driver.update_data(user_id, options_cb_handler_templates[data], value)
     await callback.message.edit_text('Настройки успешно внесены')
-
     await callback.answer()
