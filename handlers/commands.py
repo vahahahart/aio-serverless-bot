@@ -4,8 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import ydb_driver
 from handlers.search import out_last
-from config import option_dict
-from handlers.options import transport_kb_builder, values_kb_builder
+from handlers.options import kb_builder
 
 
 router = Router()
@@ -21,13 +20,11 @@ async def cmd_start(message: Message):
     user_id = message.from_user.id
     if not await ydb_driver.check_user(user_id):
         await ydb_driver.add_user(user_id)
+        await ydb_driver.update_data(user_id, 'num', '3')
         await message.answer('Пользователь зарегестрирован')
     await message.answer(start_msg)
-    tr_builder, tz_builder = transport_kb_builder(), values_kb_builder('timezone')
+    tz_builder = kb_builder('timezone')
     await message.answer(f'Укажите часовой пояс (UTC)', reply_markup=tz_builder.as_markup())
-    await message.answer(f'Укажите желаемый вид транспорта', reply_markup=tr_builder.as_markup())
-    await message.answer('Введите регион с клавиатуры')
-    await ydb_driver.update_data(user_id, 'state', 'inp_region')
 
 
 help_msg = '''Регион: <b>{}</b>
@@ -40,6 +37,15 @@ async def cmd_help(message: Message):
     user_id = message.from_user.id
     data = await ydb_driver.get_data(user_id, 'region', 'transport_type', 'time_zone')
     await message.answer(start_msg + help_msg.format(*data))
+
+
+option_dict = {
+    'Регион': 'opt_r',
+    'Тип транспорта': 'opt_tr',
+    'Часовой пояс': 'opt_tz',
+    'Отображаемое количество рейсов': 'opt_n',
+    'Отмена': 'opt_out'
+}
 
 
 @router.message(commands='options')

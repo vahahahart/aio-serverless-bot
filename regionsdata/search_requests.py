@@ -4,7 +4,13 @@ import re
 
 import requests
 
-from config import REQ_PARAMS
+
+REQ_PARAMS = {
+        'format': 'json',
+        'apikey': os.environ['YANDEX_API_KEY'],
+        'limit': 200,
+        'show_systems': 'yandex'
+    }
 
 
 # def main():
