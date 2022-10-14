@@ -8,10 +8,12 @@ from aiogram.types import BotCommand
 from handlers import commands, options, search
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
+logging_level = os.environ.get('LOGGING_LEVEL')
+root_logger = logging.getLogger()
+root_logger.handlers[0].setFormatter(logging.Formatter(
+    '[%(levelname)s]\t%(name)s\t%(request_id)s\t%(message)s\n'
+))
+root_logger.setLevel(logging_level)
 
 ycf_bot = Bot(token=os.environ['BOT_TOKEN'], parse_mode='HTML')
 
