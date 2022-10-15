@@ -2,7 +2,7 @@ from aiogram.dispatcher.router import Router
 from aiogram.types import Message, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-import ydb_driver
+from driver_init import main_driver as driver
 from handlers.search import out_last
 from handlers.options import kb_builder
 
@@ -18,10 +18,9 @@ start_msg = '''Чтобы выполнить поиск введите назв�
 @router.message(commands='start')
 async def cmd_start(message: Message):
     user_id = message.from_user.id
-    if not await ydb_driver.check_user(user_id):
-        await ydb_driver.add_user(user_id)
-        await ydb_driver.update_data(user_id, 'num', '3')
-        await message.answer('Пользователь зарегестрирован')
+    if not await driver.check_user(user_id):
+        await driver.add_user(user_id)
+        await driver.update_data(user_id, 'num', '3')
     await message.answer(start_msg)
     tz_builder = kb_builder('timezone')
     await message.answer(f'Укажите часовой пояс (UTC)', reply_markup=tz_builder.as_markup())
@@ -35,7 +34,7 @@ help_msg = '''Регион: <b>{}</b>
 @router.message(commands='help')
 async def cmd_help(message: Message):
     user_id = message.from_user.id
-    data = await ydb_driver.get_data(user_id, 'region', 'transport_type', 'time_zone')
+    data = await driver.get_data(user_id, 'region', 'transport_type', 'time_zone')
     await message.answer(start_msg + help_msg.format(*data))
 
 

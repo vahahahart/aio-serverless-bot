@@ -5,7 +5,7 @@ from aiogram.dispatcher.router import Router
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-import ydb_driver
+from driver_init import main_driver as driver
 from regionsdata import search_requests
 
 
@@ -40,7 +40,7 @@ async def check_state_middleware(
     data: Dict[str, Any]
 ) -> Any:
     user_id = event.from_user.id
-    state = await ydb_driver.get_data(user_id, 'state')
+    state = await driver.get_data(user_id, 'state')
     states_dict = {'inp_region': set_region}
     if state[0]:
         return await states_dict[state[0]](event)
@@ -80,7 +80,7 @@ async def opt_region(callback: CallbackQuery):
 
 async def opt_set_region(callback: CallbackQuery):
     user_id = callback.from_user.id
-    await ydb_driver.update_data(user_id, 'state', 'inp_region')
+    await driver.update_data(user_id, 'state', 'inp_region')
     await callback.message.edit_text(f'Введите регион:')
 
 
@@ -91,9 +91,9 @@ async def set_region(message: Message):
         await message.answer('Регион не найден')
         return
     user_id = message.from_user.id
-    await ydb_driver.update_data(user_id, 'region', region)
+    await driver.update_data(user_id, 'region', region)
     await message.answer(f'Выбранный регион: <b>{region}</b>')
-    await ydb_driver.update_data(user_id, 'state', None)
+    await driver.update_data(user_id, 'state', None)
 
 
 async def opt_timezone(callback: CallbackQuery):

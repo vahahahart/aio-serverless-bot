@@ -8,8 +8,8 @@ from aiogram.filters import ContentTypesFilter
 from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from driver_init import main_driver as driver
 from regionsdata import search_requests as req
-import ydb_driver
 
 
 router = Router()
@@ -55,10 +55,8 @@ def form_text(time_list):
 async def station_kb_builder(event, station_to_code, prev_station=None, dt=None, prev_code=None):
     builder = InlineKeyboardBuilder()
     user_id = event.from_user.id
-    data = await ydb_driver.get_data(user_id, 'region', 'transport_type')
-
-    if None in data:
-        return
+    data = await driver.get_data(user_id, 'region')
+    found_stations = req.station_to_code(station_to_code, data[0])
 
     stations_and_codes = req.station_to_code(station_to_code, *data)
 
@@ -84,7 +82,7 @@ async def station_kb_builder(event, station_to_code, prev_station=None, dt=None,
 @router.callback_query(StationsCallbackFactory.filter(F.prev_code))
 async def out_stations(callback: CallbackQuery, callback_data: StationsCallbackFactory):
     user_id = callback.from_user.id
-    data = await ydb_driver.get_data(user_id, 'time_zone', 'num')
+    data = await driver.get_data(user_id, 'time_zone', 'num')
 
     try:
         time_list = req.codes_to_time(
@@ -99,7 +97,7 @@ async def out_stations(callback: CallbackQuery, callback_data: StationsCallbackF
         await callback.answer()
         return
 
-    await ydb_driver.update_data(user_id, 'last_codes', f'{callback_data.prev_code}_{callback_data.code}')
+    await driver.update_data(user_id, 'last_codes', f'{callback_data.id2}_{callback_data.id1}')
     text = form_text(time_list)
     await callback.message.edit_text(text)
     await callback.answer()
@@ -107,7 +105,10 @@ async def out_stations(callback: CallbackQuery, callback_data: StationsCallbackF
 
 async def out_last(message: Message, reverse=False):
     user_id = message.from_user.id
-    data = await ydb_driver.get_data(user_id, 'last_codes', 'time_zone', 'num')
+    data = await driver.get_data(user_id, 'last_codes', 'time_zone', 'num')
+    if not data[0]:
+        await message.answer('Последний маршрут не сохранен')
+        return
     if reverse:
         code_to, code_from = data[0].split('_')
     else:
