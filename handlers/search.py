@@ -16,9 +16,9 @@ router = Router()
 
 
 class StationsCallbackFactory(CallbackData, prefix='stn'):
-    code: Optional[str]
-    prev_stn: Optional[Union[str, None]]
-    prev_code: Optional[Union[str, None]]
+    id1: str
+    stn2: Optional[Union[str, None]]
+    id2: Optional[Union[str, None]]
     dt: Optional[Union[str, None]]
 
 
@@ -32,8 +32,12 @@ info_text = '''Рейс <b>{}</b>
 ----
 '''
 
+end_text = '''
+<i>Данные предоставлены сервисом <a href="https://rasp.yandex.ru/">Яндекс.Расписания</a></i>
+'''
 
-def form_text(time_list):
+
+def form_text(time_list: list[dict[str, str]]) -> str:
     text = '\n----\n'
     if time_list[1:]:
         for thread in time_list[1:]:
@@ -48,50 +52,69 @@ def form_text(time_list):
         time_list[0]['name_from'],
         time_list[0]['name_to'],
         time_list[0]['date']
-    ) + text
+    ) + text + end_text
     return text
 
 
-async def station_kb_builder(event, station_to_code, prev_station=None, dt=None, prev_code=None):
+async def station_kb_builder(
+        uid: int,
+        station_to_code: str,
+        stn2: str = None,
+        dt: str = None,
+        id2: str = None,
+        reg: str = None
+) -> Union[InlineKeyboardBuilder, None]:
+
     builder = InlineKeyboardBuilder()
-    user_id = event.from_user.id
-    data = await driver.get_data(user_id, 'region')
-    found_stations = req.station_to_code(station_to_code, data[0])
+    if reg:
+        reg = req.find_region_name(reg[0])
+    else:
+        data = await driver.get_data(uid, 'region')
+        reg = data[0]
+    found_stations = req.station_name_to_code_gen(station_to_code, reg)
 
-    stations_and_codes = req.station_to_code(station_to_code, *data)
-
-    if not stations_and_codes:
+    if not found_stations:
         return
 
-    for station in stations_and_codes:
+    n = 0
+    for station in found_stations:
+        n += 1
         builder.add(
             InlineKeyboardButton(
-                text=station,
+                text=station[0],
                 callback_data=StationsCallbackFactory(
-                    code=stations_and_codes[station],
-                    prev_stn=prev_station,
-                    prev_code=prev_code,
-                    dt=dt
+                    id1=station[1],
+                    stn2=stn2,
+                    id2=id2,
+                    dt=dt,
                 ).pack()
             )
+        )
+        if n >= 9:
+            builder.add(
+                InlineKeyboardButton(
+                    text='(Отмена) Много совпадающих станций, укажите регион',
+                    callback_data='OUT')
+            )
+            break
+    else:
+        builder.add(
+            InlineKeyboardButton(
+                text='Отмена',
+                callback_data='OUT')
         )
     builder.adjust(1)
     return builder
 
 
-@router.callback_query(StationsCallbackFactory.filter(F.prev_code))
+@router.callback_query(StationsCallbackFactory.filter(F.id2))
 async def out_stations(callback: CallbackQuery, callback_data: StationsCallbackFactory):
     user_id = callback.from_user.id
     data = await driver.get_data(user_id, 'time_zone', 'num')
 
     try:
-        time_list = req.codes_to_time(
-            code_from=callback_data.prev_code,
-            code_to=callback_data.code,
-            tz=data[0],
-            num=data[1],
-            dt=callback_data.dt
-        )
+        time_list = req.codes_to_time(from_id=callback_data.id2, to_id=callback_data.id1, tz=data[0], num=data[1],
+                                      dt=callback_data.dt)
     except ValueError:
         await callback.message.edit_text('Неверный ввод времени/даты поиска!')
         await callback.answer()
@@ -99,7 +122,7 @@ async def out_stations(callback: CallbackQuery, callback_data: StationsCallbackF
 
     await driver.update_data(user_id, 'last_codes', f'{callback_data.id2}_{callback_data.id1}')
     text = form_text(time_list)
-    await callback.message.edit_text(text)
+    await callback.message.edit_text(text, disable_web_page_preview=True)
     await callback.answer()
 
 
@@ -110,41 +133,46 @@ async def out_last(message: Message, reverse=False):
         await message.answer('Последний маршрут не сохранен')
         return
     if reverse:
-        code_to, code_from = data[0].split('_')
+        to_id, from_id = data[0].split('_')
+        await driver.update_data(user_id, 'last_codes', '_'.join((from_id, to_id)))
     else:
-        code_from, code_to = data[0].split('_')
-    time_list = req.codes_to_time(
-            code_from=code_from,
-            code_to=code_to,
-            tz=data[1],
-            num=data[2],
-        )
+        from_id, to_id = data[0].split('_')
+    time_list = req.codes_to_time(from_id=from_id, to_id=to_id, tz=data[1], num=data[2])
     text = form_text(time_list)
-    await message.answer(text)
+    await message.answer(text, disable_web_page_preview=True)
 
 
 @router.message(ContentTypesFilter(content_types=['text']))
 async def inp_stations(message: Message):
-    match = re.findall(r'\s*([\w\s.]+)\s*', message.text)
-    if match:
-        station_builder = await station_kb_builder(message, *match)
-    else:
-        await message.answer('Неверный ввод')
+    match = re.findall(r'\s*([\w\s.,]+[-]?[\w\s.,]+)\s*', message.text)
+    user_id = message.from_user.id
+    try:
+        match1, match2, *dt = match
+        stn1, *reg = re.findall(r'\b([\w\s-]+)\b', match1)
+        station_builder = await station_kb_builder(user_id, station_to_code=stn1, stn2=match2, dt='-'.join(dt), reg=reg)
+    except (KeyError, ValueError):
+        await message.answer('Чтобы выполнить поиск необходимо ввести две станции через двойное тире (--)')
         return
 
     if station_builder:
-        await message.answer('Укажите начальную станцию', reply_markup=station_builder.as_markup(resize_keyborad=True))
+        await message.answer(
+            'Укажите начальную станцию',
+            reply_markup=station_builder.as_markup(resize_keyborad=True),
+            disable_web_page_preview=True
+        )
     else:
         await message.answer('Начальная станция не найдена')
 
 
 @router.callback_query(StationsCallbackFactory.filter())
 async def inp_2_station(callback: CallbackQuery, callback_data: StationsCallbackFactory):
+    user_id = callback.from_user.id
     try:
-        builder = await station_kb_builder(callback, station_to_code=callback_data.prev_stn, dt=callback_data.dt,
-                                           prev_code=callback_data.code)
+        stn2, *reg2 = re.findall(r'\b([\w\s-]+)\b', callback_data.stn2)
+        builder = await station_kb_builder(user_id, station_to_code=stn2, dt=callback_data.dt,
+                                           id2=callback_data.id1, reg=reg2)
     except AttributeError:
-        await callback.message.edit_text('Пожалуйста вводите две станции, разделяя названия запятой')
+        await callback.message.edit_text('Чтобы выполнить поиск необходимо ввести две станции через запятую')
         return
 
     if builder:

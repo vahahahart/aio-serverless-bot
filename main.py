@@ -6,7 +6,7 @@ import os
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
 
-from handlers import commands, options, search
+from handlers import commands, menu, options, search
 
 
 def set_logging():
@@ -31,21 +31,22 @@ def set_logging():
 
 async def set_commands(bot: Bot):
     cmds = [
-        BotCommand(command='/help', description='Отобразить выбранные параметры поиска и инструкции по командам'),
-        BotCommand(command='/options', description='Параметры поиска'),
+        BotCommand(command='/help', description='Помощь'),
+        BotCommand(command='/menu', description='Главное меню'),
         BotCommand(command='/last', description='Поиск по последнему маршруту'),
         BotCommand(command='/reverse_last', description='Поиск обратного маршрута')
     ]
     await bot.set_my_commands(cmds)
 
 
-def bot_init():
+def bot_init() -> tuple[Bot, Dispatcher]:
     set_logging()
 
     bot = Bot(token=os.environ['BOT_TOKEN'], parse_mode='HTML')
     dp = Dispatcher()
 
     dp.include_router(commands.router)
+    dp.include_router(menu.router)
     dp.include_router(options.router)
     dp.include_router(search.router)
 
