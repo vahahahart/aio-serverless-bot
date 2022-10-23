@@ -6,7 +6,7 @@ from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from driver_init import main_driver as driver
-from regionsdata import search_requests
+from requests_data import search_requests
 
 
 router = Router()

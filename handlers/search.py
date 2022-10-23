@@ -9,7 +9,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from driver_init import main_driver as driver
-from regionsdata import search_requests as req
+from requests_data import search_requests as req
 
 
 router = Router()
